@@ -63,6 +63,7 @@ if __name__ == '__main__':
 	filename = 'sample.tsv'
 	extra_rule_file = 'rules.json'
 	config = 'config.json'
+	output_filename = 'output.tsv'
 
 	cp = subprocess.run(['java', '-jar', 'amie-milestone-intKB.jar', '-oute', '-dpr', '-minis', '1', filename], capture_output=True)
 	output = cp.stdout
@@ -85,7 +86,6 @@ if __name__ == '__main__':
 		rules = [Rule(rule_text.decode(ENCODING)) for rule_text in rules_text]
 	else:
 		print('[Info] No rules were extracted.')
-		exit(1)
 
 	# add extra rules
 	if extra_rule_file is not None:
@@ -105,6 +105,7 @@ if __name__ == '__main__':
 
 	# For each rule, search all of its predicates
 	# If all the predicates hold, and the conclusion is not in the KB, show the conclusion as an added edge
+	added = []
 	for rule in rules:
 		q = g.query(f"""SELECT {rule.conclusion.subject} {rule.conclusion.object} WHERE {{""" + 
 
@@ -116,6 +117,14 @@ if __name__ == '__main__':
 			FILTER({rule.conclusion.subject} != {rule.conclusion.object})
 			}}""")
 		for r in q:
-			print(f'[ADDED] {r[0].split("/")[-1]} {rule.conclusion.relation} {r[1].split("/")[-1]}')
+			entry = f'<{r[0].split("/")[-1]}>\t<{rule.conclusion.relation}>\t<{r[1].split("/")[-1]}>\t.'
+			print(f'[ADDED] {entry}')
+			added.append(entry)
 		print()
+
+	with open(filename, 'r') as f:
+		lines = f.readlines()
+	with open(output_filename, 'w') as f:
+		f.writelines(lines)
+		f.writelines(added)
 	
